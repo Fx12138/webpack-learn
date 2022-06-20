@@ -1,15 +1,14 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
 
 module.exports = {
   entry: './src/index.js',
 
   output: {
     filename: 'bundle.js',
-    path: path.resolve(__dirname, './dist'),
-    clean: true,  //用于自动清理上次打包的文件
+    //开发模式没有输出,path可以直接定义成undefined
+    // path: path.resolve(__dirname, '../dist'),
+    path: undefined,
     assetModuleFilename: 'images/[contenthash][ext]'  //自定义资源模块打包的位置和文件名
   },
 
@@ -26,7 +25,7 @@ module.exports = {
       },
       {
         test: /(\.css|less)$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+        use: ["style-loader", 'css-loader', 'less-loader']
       },
       {
         test: /\.js$/,
@@ -41,25 +40,15 @@ module.exports = {
 
   plugins: [
     new HtmlWebpackPlugin({
-      template: './index.html',  //根据哪个模板
-      filename: 'app.html',   //生成文件的名称
-      inject: 'body',  //定义生成的html在哪里引入资源,默认在head中
-    }),
-    new MiniCssExtractPlugin({
-      filename: 'style/[contenthash].css'//自定义打包后文件的位置和名称
+      template: path.resolve(__dirname, '../public/index.html'),  //根据哪个模板
     })
   ],
 
   devServer: {
-    static: './dist'
+    host: 'localhost',
+    port: '3000',
+    open: true
   },
 
-  // mode: 'production',
   mode: 'development',
-
-  optimization: {
-    minimizer: [
-      new CssMinimizerPlugin()
-    ]
-  }
 }

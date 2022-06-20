@@ -1,6 +1,3 @@
-# webpack-learn
-学习webpack测试用项目
-
 # 核心概念
 
 四个核心概念:入口(entry) 	输出(output) 	loader	插件(plugins) 
@@ -75,6 +72,96 @@ loader 被用于转换某些类型的模块，而插件则可以用于执行范�
 
 
 
+需要css-loader 和 style-loader 两个loader,其中css-loader是用来打包css文件,而style-loader用于将效果在页面中展示
+
+```js
+{
+  test: /\.css$/,
+  use: ['style-loader', 'css-loader']
+}
+```
+
+less文件需要在这两个loader后面加一个less-loader
+
+## 抽离和压缩css
+
+上一节已经可以将css文件进行处理并在页面中展示,但是打包后的css资源是在html文件里的,接下来就是将css抽离成单独的文件并使用link标签引入.这里用到了mini-css-extract-plugin插件.参考plugin中的相关章节
+
+## babel
+
+主要用于将ES6语法编写的代码转换为向后兼容的js语法,以便能够运行在当前和旧版本的浏览器或其他环境中.新建babel.config.js文件
+
+主要配置是预设presets,简单理解就是一组babel插件扩展babel的功能
+
+```powershell
+npm install babel-loader babel-core babel-preset-env -d
+```
+
+可以直接在webpack.config.js中进行配置
+
+```js
+      {
+        test: /\.js$/,
+        exclude: /(node_modules|bower_components)/, //排除node_modules中的文件不处理
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['@babel/preset-env']
+          }
+        }
+      }
+```
+
+也可以新建babel.config.js文件进行配置,方便以后的修改
+
+```js
+module.exports = {
+  //智能预设 能够编译ES6的语法
+  presets: ['@babel/preset-env']
+}
+```
+
+
+
+# plugin
+
+## 抽离和压缩css
+
+使用mini-css-extract-plugin将css抽离成单独的文件并使用link标签引入.因为要引入并不需要用style-loader将style标签写在head中,所以需要将style-loader换成MiniCssExtractPlugin.loader
+
+```js
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+
+module: {
+    rules: [
+      {
+        test: /(\.css|less)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+      }
+    ]
+  },
+
+plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'style/[contenthash].css'	//自定义打包后文件的位置和名称
+    })
+  ],
+```
+
+这个时候已经能够成功抽离css文件,但是打包后的css文件没有进行压缩,这时候要用到css-minimizer-webpack-plugin,这个plugin比较特殊,他不在plugin中进行配置,而是在optimization优化中进行配置,并且需要在生产模式下
+
+```js
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+
+mode: 'production',
+
+optimization: {
+    minimizer: [
+      new CssMinimizerPlugin()
+    ]
+  }
+```
+
 
 
 # 开发环境
@@ -86,11 +173,9 @@ loader 被用于转换某些类型的模块，而插件则可以用于执行范�
 ```js
   plugins: [
     new HtmlWebpackPlugin({
-      template: './index.html',  //根据哪个模板
-      filename: 'app.html',   //生成文件的名称
-      inject: 'body',  //定义生成的html在哪里引入资源,默认在head中
+      template: path.resolve(__dirname, '../public/index.html'),  //根据哪个模板
     })
-  ]
+  ],
 ```
 
 ## source map
@@ -101,14 +186,6 @@ loader 被用于转换某些类型的模块，而插件则可以用于执行范�
   devtool: 'inline-source-map',
 ```
 
-## 使用watch mode
-
-作用:在开发时需要每次都运行npx webpack命令进行打包,使用watch mode可以在保存文件的时候自动检测更改过的文件并进行打包
-
-```powershell
-npx webpack --watch
-```
-
 ## webpack-dev-server
 
 即使有了上面的watch可以在保存时进行自动打包,但是用户每次还需要刷新一下浏览器才能显示更新后的内容,使用webpack-dev-server可以解决这个问题,它具有live reloading即实时加载页面的功能
@@ -117,13 +194,33 @@ npx webpack --watch
 
 ```js
   devServer: {
-    static: './dist'
+    host: 'localhost',
+    port: '3000',
+    open: true
   },
 ```
 
 ```powershell
-npx webpack-dev-server
+npx webpack serve
 ```
 
-## 
+# 生产环境
+
+在生产环境中不需要devServer
+
+## 压缩css
+
+已经能够成功抽离css文件,但是打包后的css文件没有进行压缩,这时候要用到css-minimizer-webpack-plugin,这个plugin比较特殊,他不在plugin中进行配置,而是在optimization优化中进行配置,并且需要在生产模式下
+
+```js
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
+
+mode: 'production',
+
+optimization: {
+    minimizer: [
+      new CssMinimizerPlugin()
+    ]
+  }
+```
 
