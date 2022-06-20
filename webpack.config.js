@@ -1,5 +1,6 @@
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 
 module.exports = {
   entry: './src/index.js',
@@ -21,6 +22,10 @@ module.exports = {
         generator: {
           filename: 'images/test.png' //自定义资源模块打包的位置和文件名
         }
+      },
+      {
+        test: /(\.css|less)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
       }
     ]
   },
@@ -30,6 +35,9 @@ module.exports = {
       template: './index.html',  //根据哪个模板
       filename: 'app.html',   //生成文件的名称
       inject: 'body',  //定义生成的html在哪里引入资源,默认在head中
+    }),
+    new MiniCssExtractPlugin({
+      filename: 'style/[contenthash].css'//自定义打包后文件的位置和名称
     })
   ],
 
