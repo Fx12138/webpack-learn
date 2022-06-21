@@ -25,8 +25,30 @@ module.exports = {
         }
       },
       {
-        test: /(\.css|less)$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+        test: /(\.css)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', {
+          loader: "postcss-loader",
+          options: {
+            postcssOptions: {
+              plugins: [
+                "postcss-preset-env"
+              ],
+            },
+          },
+        },]
+      },
+      {
+        test: /(\.less)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', {
+          loader: "postcss-loader",
+          options: {
+            postcssOptions: {
+              plugins: [
+                "postcss-preset-env",
+              ],
+            },
+          },
+        }, 'less-loader']
       },
       {
         test: /\.js$/,
@@ -43,6 +65,7 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, '../public/index.html'),  //根据哪个模板
     }),
+    //用于提取css成单独文件
     new MiniCssExtractPlugin({
       filename: 'style/[contenthash].css'//自定义打包后文件的位置和名称
     })
@@ -52,6 +75,7 @@ module.exports = {
 
   optimization: {
     minimizer: [
+      //压缩css文件
       new CssMinimizerPlugin()
     ]
   },
