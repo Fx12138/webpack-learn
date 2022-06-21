@@ -18,3 +18,8 @@ block.textContent = '哈哈哈哈'
 block.classList.add('block-bg')
 document.body.appendChild(block)
 
+if (module.hot) {
+  //判断是否支持热模块替换功能
+  module.accept("./helloWorld")
+}
+

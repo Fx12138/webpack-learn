@@ -21,8 +21,8 @@ loader 被用于转换某些类型的模块，而插件则可以用于执行范�
 
 # 资源模块
 
-- asset/resource 发送一个单独的文件并导出 URL。resource类型打包后，会在dist下面生成对应的静态资源文件。
-- asset/inline 导出一个资源的 data URI。比如svg格式导出为base64的格式。inline类型打包后，dist下不会生成对应的静态资源文件。
+- asset/resource 发送一个单独的文件并导出 URL。resource类型打包后，会在dist下面生成对应的静态资源文件。从而需要一次请求得到图片
+- asset/inline 导出一个资源的 data URI。比如svg格式导出为base64的格式。inline类型打包后，dist下不会生成对应的静态资源文件。导出的base64直接放在src中所以不用发请求了,但是图片越大,生成的base64体积会相对于原图片变得更大,因此适用于图片体积较小的情况
 - asset/source 导出资源的源代码。比如实现的功能为在网页上渲染txt文件中的内容。source类型打包后，dist下不会生成对应的静态资源文件。
 - asset 在导出一个 data URI 和发送一个单独的文件之间自动选择。在resource和inline中自动选择；默认选择方式如果文件大于8k，选择resource的类型；如果文件小于8k，选择inline的类型。也可以通过parser下的dataUrlCondition来修改这个默认规则
 
@@ -83,10 +83,6 @@ loader 被用于转换某些类型的模块，而插件则可以用于执行范�
 
 less文件需要在这两个loader后面加一个less-loader
 
-## 抽离和压缩css
-
-上一节已经可以将css文件进行处理并在页面中展示,但是打包后的css资源是在html文件里的,接下来就是将css抽离成单独的文件并使用link标签引入.这里用到了mini-css-extract-plugin插件.参考plugin中的相关章节
-
 ## babel
 
 主要用于将ES6语法编写的代码转换为向后兼容的js语法,以便能够运行在当前和旧版本的浏览器或其他环境中.新建babel.config.js文件
@@ -121,50 +117,19 @@ module.exports = {
 }
 ```
 
-
-
-# plugin
-
-## 抽离和压缩css
-
-使用mini-css-extract-plugin将css抽离成单独的文件并使用link标签引入.因为要引入并不需要用style-loader将style标签写在head中,所以需要将style-loader换成MiniCssExtractPlugin.loader
-
-```js
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-
-module: {
-    rules: [
-      {
-        test: /(\.css|less)$/,
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
-      }
-    ]
-  },
-
-plugins: [
-    new MiniCssExtractPlugin({
-      filename: 'style/[contenthash].css'	//自定义打包后文件的位置和名称
-    })
-  ],
-```
-
-这个时候已经能够成功抽离css文件,但是打包后的css文件没有进行压缩,这时候要用到css-minimizer-webpack-plugin,这个plugin比较特殊,他不在plugin中进行配置,而是在optimization优化中进行配置,并且需要在生产模式下
-
-```js
-const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
-
-mode: 'production',
-
-optimization: {
-    minimizer: [
-      new CssMinimizerPlugin()
-    ]
-  }
-```
-
-
-
 # 开发环境
+
+在根目录下新建config文件夹,在config文件夹中创建webpack.dev.js和webpack.prod.js分别为开发环境和生产环境的配置
+
+在package.json中配置启动命令
+
+```json
+ "scripts": {
+    "start": "npm run dev",
+    "dev": "webpack serve --config ./config/webpack.dev.js",
+    "build": "webpack --config ./config/webpack.prod.js"
+  },
+```
 
 ## HtmlWebpackPlugin
 
@@ -208,9 +173,42 @@ npx webpack serve
 
 在生产环境中不需要devServer
 
-## 压缩css
+## HtmlWebpackPlugin
 
-已经能够成功抽离css文件,但是打包后的css文件没有进行压缩,这时候要用到css-minimizer-webpack-plugin,这个plugin比较特殊,他不在plugin中进行配置,而是在optimization优化中进行配置,并且需要在生产模式下
+作用:生成index.html自动引入打包好的资源
+
+```js
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, '../public/index.html'),  //根据哪个模板
+    })
+  ],
+```
+
+## 抽离和压缩css
+
+使用mini-css-extract-plugin将css抽离成单独的文件并使用link标签引入.因为要引入并不需要用style-loader将style标签写在head中,所以需要将style-loader换成MiniCssExtractPlugin.loader
+
+```js
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+
+module: {
+    rules: [
+      {
+        test: /(\.css|less)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+      }
+    ]
+  },
+
+plugins: [
+    new MiniCssExtractPlugin({
+      filename: 'style/[contenthash].css'	//自定义打包后文件的位置和名称
+    })
+  ],
+```
+
+这个时候已经能够成功抽离css文件,但是打包后的css文件没有进行压缩,这时候要用到css-minimizer-webpack-plugin,这个plugin比较特殊,他不在plugin中进行配置,而是在optimization优化中进行配置,并且需要在生产模式下
 
 ```js
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin')
@@ -223,4 +221,210 @@ optimization: {
     ]
   }
 ```
+
+## 样式兼容性处理
+
+```powershell
+npm install postcss-loader postcss postcss-preset-env -d
+```
+
+然后进行配置,注意这个loader的配置要写在css-loader的后面并且在less-loader的前面
+
+```js
+{
+        test: /(\.less)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', {
+          loader: "postcss-loader",
+          options: {
+            postcssOptions: {
+              plugins: [
+                [
+                  "postcss-preset-env",
+                  {
+                    // Options
+                  },
+                ],
+              ],
+            },
+          },
+        },, 'less-loader']
+      },
+```
+
+需要在package.json中配置浏览器要兼容的版本,比如
+
+```json
+  "browserslist": [
+    "ie >= 8"
+  ]
+```
+
+# 高级
+
+高级配置就是进行webpack优化,让代码再编译/运行时性能更好
+
+## 提升打包构建速度
+
+### HMR
+
+HMR全称HotModuleReplacement 热模块替换,提高开发环境中项目的打包速度
+
+开发时修改了其中一个模块的代码,但是webpack默认会将所有模块全部重新打包编译,速度很慢.所以需要做到当我们修改某个模块的代码,就只对这个模块代码进行重新打包编译,其他模块不变提高打包速度
+
+在webpack5中样式默认开启热模块替换,但是js不行,默认情况下修改js代码依然会重新对所有模块进行编译
+
+在index.js中对需要进行热模块替换的js引入进行配置
+
+```js
+if(module.hot){
+  //判断是否支持热模块替换功能
+  module.accept("./helloWorld")
+}
+```
+
+这样配置后,当helloWorld.js文件发生变化后,只会对这个文件进行单独的重新编译,其他文件不会
+
+开发项目时使用vue-loader或react-hot-loader会自动进行热模块替换,无需手动配置
+
+### OneOf
+
+开发模式和生产模式都可以
+
+在编译打包时,遇到非js文件会在loader中由上到下依次寻找能够处理这个文件的loader,一直到结束.使用OneOf可以实现在寻找的过程中一旦命中,就不再向后寻找,直接使用
+
+使用方法:只需在rules和匹配规则中间加一层oneOf包裹
+
+```js
+module: {
+    rules: [
+      {
+        oneOf: [
+          {
+            test: /\.png$/, //匹配的文件名
+            type: 'asset/resource',  //使用的模式
+            generator: {
+              filename: 'images/test.png' //自定义资源模块打包的位置和文件名
+            }
+          },
+          {
+            test: /(\.css)$/,
+            use: ["style-loader", 'css-loader']
+          },
+          {
+            test: /(\.css|less)$/,
+            use: ["style-loader", 'css-loader', 'less-loader']
+          },
+          {
+            test: /\.js$/,
+            exclude: /(node_modules|bower_components)/, //排除node_modules中的文件不处理
+            loader: 'babel-loader',
+            // options: {
+            //   presets: ['@babel/preset-env']
+            // }
+          }
+        ]
+      }
+    ]
+  },
+```
+
+### include/exclude
+
+我们使用的第三方库或插件,比如vue-router echarts 这些文件都下载到了node_modules中了,而这些文件不需要再次进行编译,所以需要排除这里面的文件
+
+主要是针对js文件,如babel和eslint
+
+```js
+{
+  test: /\.js$/,
+  exclude: /(node_modules|bower_components)/, //排除node_modules中的文件不处理
+  include:path.resolve(__diename,"../src")//只处理src目录下的文件
+  loader: 'babel-loader',
+  // options: {
+   //   presets: ['@babel/preset-env']
+  // }
+}
+```
+
+### chche
+
+开发模式和生产模式,每次打包时都要经过Eslint检查和Babel编译,速度比较慢
+
+可以缓存之前的Eslint检查和babel编译结果,这样第二次打包时只会打包后来修改的,之前的会使用缓存,从而提高打包速度
+
+```js
+{
+  test: /\.js$/,
+  exclude: /(node_modules|bower_components)/, //排除node_modules中的文件不处理
+  loader: 'babel-loader',
+  options: {
+    // presets: ['@babel/preset-env'],
+    cacheDirectory:true,  //开启babel缓存
+    cacheCompression:false  //关闭缓存文件压缩
+  }
+}
+```
+
+### 多进程打包
+
+想要提升打包速度,主要是提升js打包速度.因为js打包主要是采用Eslint babel terser(webpack内置的对js进行压缩)这些工具进行处理打包,所以我们要提升他们的运行速度,我们可以开启多进程同时处理js文件.**注意**请在特别耗时的操作中进行,因为每个进程启动就有大约600ms左右的时间
+
+使用时需要先判断cpu核数,因为启动进程的最大数就是cpu的核数
+
+```js
+const os = require('os')
+//获取cpu核数
+const threads = os.cpus().length;
+```
+
+babel开启多进程打包
+
+```powershell
+npm install thread-loader -d
+```
+
+```js
+{
+  test: /\.js$/,
+  exclude: /(node_modules|bower_components)/, //排除node_modules中的文件不处理
+  use: [
+    {
+      loader: 'thread-loader', //开启多进程
+      options: {
+        works: threads //进程的数量
+      }
+    },
+    {
+      loader: 'babel-loader',
+      options: {
+        // presets: ['@babel/preset-env'],
+        cacheDirectory: true,  //开启babel缓存
+        cacheCompression: false  //关闭缓存文件压缩
+      }
+    }
+  ]
+}
+```
+
+terser开启多进程打包
+
+```js
+const TerserWebpackPlugin = require('terser-webpack-plugin')
+```
+
+```js
+  optimization: {
+    //压缩的操作
+    minimizer: [
+      //压缩css文件
+      new CssMinimizerPlugin(),
+      //压缩js
+      new TerserWebpackPlugin({
+        parallel: threads   //开启terser多进程打包和进程数量
+      })
+    ]
+  },
+```
+
+## 减少代码体积
 
