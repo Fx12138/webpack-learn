@@ -27,6 +27,19 @@ img.onclick = function () {
     })
 }
 
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('注册成功', registration);
+      })
+      .catch(registrationError => {
+        console.log('注册失败', registrationError);
+
+      })
+  })
+}
+
 if (module.hot) {
   //判断是否支持热模块替换功能
   module.accept("./helloWorld")

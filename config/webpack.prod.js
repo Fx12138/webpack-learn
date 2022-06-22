@@ -7,6 +7,7 @@ const os = require('os')
 const threads = os.cpus().length;
 const TerserWebpackPlugin = require('terser-webpack-plugin')
 // const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin')
+const WorkboxPlugin = require('workbox-webpack-plugin')
 
 module.exports = {
   entry: {
@@ -15,10 +16,10 @@ module.exports = {
 
   output: {
     filename: 'bundle.js',  //webpack的命名方式,以自身的文件名命名
-    chunkFilename: '[name].js',
+    chunkFilename: '[name].chunk.js',
     path: path.resolve(__dirname, '../dist'), //打包输出的其他文件命名,比如动态加载的文件
     clean: true,  //用于自动清理上次打包的文件
-    assetModuleFilename: 'images/[contenthash][ext]'  //自定义资源模块打包的位置和文件名
+    assetModuleFilename: 'images/[hash:10][ext]'  //自定义资源模块打包的位置和文件名
   },
 
   module: {
@@ -94,6 +95,11 @@ module.exports = {
     new MiniCssExtractPlugin({
       filename: 'style/[contenthash].css'//自定义打包后文件的位置和名称
     }),
+    //PWA使项目可以离线访问
+    new WorkboxPlugin.GenerateSW({
+      clientsClaim: true,
+      skipWaiting: true
+    })
 
   ],
 
