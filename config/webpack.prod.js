@@ -6,6 +6,7 @@ const os = require('os')
 //获取cpu核数
 const threads = os.cpus().length;
 const TerserWebpackPlugin = require('terser-webpack-plugin')
+// const ImageMinimizerPlugin = require('image-minimizer-webpack-plugin')
 
 module.exports = {
   entry: './src/index.js',
@@ -71,7 +72,8 @@ module.exports = {
                 options: {
                   // presets: ['@babel/preset-env'],
                   cacheDirectory: true,  //开启babel缓存
-                  cacheCompression: false  //关闭缓存文件压缩
+                  cacheCompression: false,  //关闭缓存文件压缩
+                  plugins: ["@babel/plugin-transform-runtime"] //减少体积
                 }
               }
             ]
@@ -102,7 +104,38 @@ module.exports = {
       //压缩js
       new TerserWebpackPlugin({
         parallel: threads   //开启terser多进程打包和进程数量
-      })
+      }),
+      // 图片压缩
+      // new ImageMinimizerPlugin({
+      //   minimizer: {
+      //     // Lossless optimization with custom option
+      //     // Feel free to experiment with options for better result for you
+      //     options: {
+      //       plugins: [
+      //         ["gifsicle", { interlaced: true }],
+      //         ["jpegtran", { progressive: true }],
+      //         ["optipng", { optimizationLevel: 5 }],
+      //         // Svgo configuration here https://github.com/svg/svgo#configuration
+      //         [
+      //           "svgo",
+      //           {
+      //             plugins: [
+      //               'preset-default',
+      //               'prefixIds',
+      //               {
+      //                 name: "sortAttrs",
+      //                 params: {
+      //                   xmlnsOrder: 'alphabetical',
+      //                 },
+      //               },
+      //             ]
+      //           },
+      //         ],
+      //       ],
+      //     },
+
+      //   },
+      // }),
     ]
   },
 
